@@ -12,7 +12,7 @@ class PDO_CRUD
 	
 	function __construct()
 	{
-		require_once './library/pdoconfig.php';
+		require_once './pdoconfig.php';
 		if ($PDOConfig) {
 			if (!$conn) {
 				$conn = $PDOConfig->init_dbh();				

@@ -5,14 +5,14 @@
 * this class is use PDO to CRUD: CREATE, READ, UPDATE, DELETE table.
 *this class is modified by Techgang ceit final poject 2015. advisor Tech Mekchone BOUNTHAN
 *Copy right by NOKIENG
-*/
-class PDO_CRUD
+*/ 
+class pdo_crud
 {
 	private $conn = false;	//check if DB connect or not, this must be correct first when new this class
 	
 	function __construct()
 	{
-		require_once './pdoconfig.php';
+		include './class/pdoconfig.php';
 		if ($PDOConfig) {
 			if (!$conn) {
 				$conn = $PDOConfig->init_dbh();				
@@ -61,16 +61,12 @@ private function checkTable($table = null){
 */
 private function checkColumnHacks($columnHacks = null, $isAllowNull = true){
 	if ($columnHacks != null) {
-		if (is_string($columnHacks)) {
-			if (!strpos($columnHacks, "?")) {
-				throw new Exception("Error columnHacks accepted string like _ID = ? ..etc : columnHacks");
-			}
-		}	elseif (is_array($columnHacks)) {
+		if (is_array($columnHacks)) {
 			if (count($columnHacks) != count($columnHacks, COUNT_RECURSIVE)) {
 				throw new Exception("Error columnHacks accepted none multidimention array : columnHacks");			
 			}
 		}	else{
-			throw new Exception("Error columnHacks accepted only String like _ID = ? and none multidimention array : columnHacks");		
+			throw new Exception("Error columnHacks accepted only none multidimention array : columnHacks");		
 		}
 	}	else{
 		if ($isAllowNull == false) 
@@ -81,9 +77,9 @@ private function checkColumnHacks($columnHacks = null, $isAllowNull = true){
 /*
 *values must not be null
 *values could be either none or multidimention array()
-*if checkValues is sent signal isNoneMultiArr true 
+*if checkValues is sent signal $isMultiArr true 
 *	values must be normal or none multidimention array()
-*if checkValues is sent signal isNoneMultiArr false
+*if checkValues is sent signal $isMultiArr false
 *	values is multidimention array()
 *	values must be BOX array() or all sub array must have the same count or size
 *values is excepted only array()
@@ -148,7 +144,7 @@ private function checkSelectionAndSelectionArgs($selection = null, $selectionArg
 	}
 }
 
-	/*
+	/**
 	*this class is copy algorithm from ContentProvider android contentProvider class
 	*	@param $table 		the table name that we want to query
 	*	@param $columnHacks define column output, or column hacks. 
@@ -207,7 +203,56 @@ private function checkSelectionAndSelectionArgs($selection = null, $selectionArg
    	  	return false;
 	}
 
-	/*
+
+	/**
+	* this function is for advanced query, if you want to query with multiple table or JOIN table use it
+	*@param $sql 		param sql must contain SELECT .. FROM table JOIN 
+	*					if select item sql must contain like _ID = ? for specific column,
+	*					and refer values to $params as array values
+	*/
+	public function advanceQuery($sql = NULL, $params = NULL, $sortOrder = NULL, $limit = NULL){
+		//sql must not be null
+		if ($sql == NULL || trim($sql) == "")
+			throw new Exception("Error Empty sql command : sql");
+		//sql command must contain SELECT to perform SELECT
+		if (!strpos(strtolower($sql), "select"))
+			throw new Exception("Error query must contain SELECT command : sql");
+		//if sql contain replace string ?, $params must not be null
+		if (strpos($sql, "?"))
+			if ($params != NULL || trim($params) != "") {
+				throw new Exception("Error sql must contain some thing like _ID = ? : sql");
+			}
+		//sql must contain JOIN and WHERE to perform multiple query or advance query
+		if (!strpos(strtolower($sql), "join") || !strpos(strtolower($sql), "where"))
+			throw new Exception("Error sql must contain command JOIN and selection WHERE as well : sql");
+		//if $params is not null, $params must be normal array() only
+		if ($params != NULL || trim($params) != "")
+			if (!(count($params) == count($params, COUNT_RECURSIVE)))
+				throw new Exception("Error you must pass none multidimention array : values");
+
+		if ($sortOrder != null) {
+			$sql .= " ORDER BY " .$sortOrder;
+		}
+		if ($limit != null) {
+			$sql .= " LIMIT " .$limit;
+		}
+		$sql = mysql_real_escape_string($sql);
+		$config = new PDOConfig();
+		$conn = $config->init_dbh();
+		$query = $conn->prepare($sql);
+		//if $params is empty, or not select specific values, or item, let it execute()
+		if (empty($params) || $params == NULL || trim($params) == ""){
+			$query->execute();
+		}	else{
+			$query->execute($params);			
+		}
+		if ($query) {
+			return $query->fetchAll(PDO::FETCH_ASSOC);
+		}
+		return false;
+	}
+
+	/**
 	*This function is used to insert only one row, if multiple row might use bulkInsert instead
 	*	@param $table 			define table name
 	*	@param $columnHacks 	define column which you want to insert, custom insert into specific column
@@ -290,7 +335,7 @@ private function checkSelectionAndSelectionArgs($selection = null, $selectionArg
 
 	}
 
-	/*
+	/**
 	*this function is used to update your table. 
 	*	@param 	$table 			it define table name.
 	*			(String)
@@ -340,7 +385,7 @@ private function checkSelectionAndSelectionArgs($selection = null, $selectionArg
 		return false;
 	}
 
-/*
+/**
 *this delete function
 *@param $table 			table name you want to delete record from
 *		(String)

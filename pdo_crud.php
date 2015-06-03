@@ -12,7 +12,7 @@ class pdo_crud
 	
 	function __construct()
 	{
-		include './class/pdoconfig.php';
+		require_once './class/pdoconfig.class.php';
 		if ($PDOConfig) {
 			if (!$conn) {
 				$conn = $PDOConfig->init_dbh();				
@@ -144,6 +144,47 @@ private function checkSelectionAndSelectionArgs($selection = null, $selectionArg
 	}
 }
 
+
+
+	/**
+	*@param $table 		TABLE name
+	*String
+	*@param $column  	Which COLUMN will you count, if NULL it will count all
+	*String
+	*@param $selection  WHICH column Will you include CASE WHERE like _ID = ?
+	*String
+	*@param $selectionArgs IF YOU INDICAT @param $selection, you have to sent this value
+	*						as array. 
+	*note number ? in $selection must equal size of $selectionArgs
+	*/
+
+	
+	public function getCount($table, $column = NULL, $selection =NULL, $selectionArgs = NULL){
+		$this->checkTable($table);
+		$this->checkSelectionAndSelectionArgs($selection, $selectionArgs, true, false);
+		if ($column == NULL) {
+			$column = "*";
+		}
+		$sql = "SELECT count($column) as count FROM ".$table;
+		if ($selection != NULL) {
+			$sql .=" WHERE " .$selection;
+		}
+		$PDOConfig = new PDOConfig();
+		$conn = $PDOConfig->init_dbh();
+		$count = $conn->prepare($sql);
+		if ($selection != NULL) {
+			$count->execute($selectionArgs);
+		}	else{
+			$count->execute();
+		}
+		if ($count) {
+			$total = $count->fetch(PDO::FETCH_NUM);
+			return $total[0];
+		}
+		$conn = NULL;
+		return -1;
+	}
+
 	/**
 	*this class is copy algorithm from ContentProvider android contentProvider class
 	*	@param $table 		the table name that we want to query
@@ -160,6 +201,8 @@ private function checkSelectionAndSelectionArgs($selection = null, $selectionArg
     *     		(String)	   If {@code null} then the provider is free to define the sort order.
     *	@param $limit 		limit the output row. you may pass LIMIT 0,5 or LIMIT 10,20 (10 records)
 	*/
+
+
 	public function query($table = null, $columnHacks = null, $selection = null, $selectionArgs = null, $sortOrder = null, $limit = null){
 		$this->checkTable($table);
 		$this->checkColumnHacks($columnHacks, true);
@@ -194,12 +237,14 @@ private function checkSelectionAndSelectionArgs($selection = null, $selectionArg
    	  	$query = $conn->prepare($sqlQuery);
    	  	if ($selectionArgs != null && $selection != null) {
    	  		$query->execute($selectionArgs);
+   	  	}	else{
+   	  		$query->execute(); 
    	  	}
    	  	// var_dump($query);
-   	  	$query->execute(); 
    	  	if ($query) {
    	  		return $query->fetchAll(PDO::FETCH_ASSOC);
    	  	}
+   	  	$conn = NULL;
    	  	return false;
 	}
 
@@ -215,16 +260,16 @@ private function checkSelectionAndSelectionArgs($selection = null, $selectionArg
 		if ($sql == NULL || trim($sql) == "")
 			throw new Exception("Error Empty sql command : sql");
 		//sql command must contain SELECT to perform SELECT
-		if (!strpos(strtolower($sql), "select"))
+		if (!preg_match("/select/", strtolower($sql)))
 			throw new Exception("Error query must contain SELECT command : sql");
 		//if sql contain replace string ?, $params must not be null
 		if (strpos($sql, "?"))
-			if ($params != NULL || trim($params) != "") {
-				throw new Exception("Error sql must contain some thing like _ID = ? : sql");
+			if ($params == NULL || trim($params) == "") {
+				throw new Exception("Error you get something like _ID = ? so you have to pass array as vales : sql");
 			}
 		//sql must contain JOIN and WHERE to perform multiple query or advance query
-		if (!strpos(strtolower($sql), "join") || !strpos(strtolower($sql), "where"))
-			throw new Exception("Error sql must contain command JOIN and selection WHERE as well : sql");
+		if (!strpos(strtolower($sql), "join"))
+			throw new Exception("Error sql must contain command JOIN : sql");
 		//if $params is not null, $params must be normal array() only
 		if ($params != NULL || trim($params) != "")
 			if (!(count($params) == count($params, COUNT_RECURSIVE)))
@@ -382,6 +427,7 @@ private function checkSelectionAndSelectionArgs($selection = null, $selectionArg
    		if ($update) {
    			return $update->rowCount();
    		}
+   		$conn = NULL;
 		return false;
 	}
 
@@ -423,7 +469,7 @@ private function checkSelectionAndSelectionArgs($selection = null, $selectionArg
 			}
 			return $result;
 		}
-		
+		$conn = NULL;
 		return false;
 	}
 	

@@ -4,7 +4,7 @@
 *date 27/4/2015
 * this class is use PDO to CRUD: CREATE, READ, UPDATE, DELETE table.
 *this class is modified by Techgang ceit final poject 2015. advisor Tech Mekchone BOUNTHAN
-*Copy right by NOKIENG
+*Copyright by NOKIENG
 */ 
 class pdo_crud
 {
